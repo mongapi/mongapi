@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Events\GameSessionStarted;
+use App\Events\GameStateUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\GameSession;
 use Illuminate\Http\JsonResponse;
@@ -12,50 +14,57 @@ class SessionController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'game_id'        => 'nullable|exists:games,id',
-            'lesson_plan_id' => 'nullable|exists:lesson_plans,id',
-            'game_content'   => 'nullable|array',
-            'game_mode'      => 'nullable|in:individual,group',
+            'game_id'      => 'required|exists:games,id',
+            'classroom_id' => 'required|integer',
+            'game_content' => 'nullable|array',
         ]);
 
         $session = GameSession::create([
-            'game_id'        => $request->game_id,
-            'lesson_plan_id' => $request->lesson_plan_id,
-            'game_content'   => $request->game_content ?? [],
-            'game_mode'      => $request->game_mode ?? 'individual',
-            'status'         => 'waiting',
+            'game_id'      => $request->game_id,
+            'classroom_id' => $request->classroom_id ?? 1,
+            'user_id'      => auth()->id(),
+            'status'       => 'waiting',
+            'game_content' => $request->game_content ?? [],
         ]);
 
         return response()->json(['data' => $session], 201);
     }
 
-    public function show(GameSession $session): JsonResponse
+    public function show(int $id): JsonResponse
     {
-        $session->load(['game', 'lessonPlan']);
+        $session = GameSession::with(['game'])->findOrFail($id);
         return response()->json(['data' => $session]);
     }
 
-    public function start(GameSession $session): JsonResponse
+    public function start(int $id): JsonResponse
     {
+        $session = GameSession::findOrFail($id);
         $session->update(['status' => 'playing', 'started_at' => now()]);
+        broadcast(new GameSessionStarted($session))->toOthers();
         return response()->json(['data' => $session, 'message' => 'Sesión iniciada']);
     }
 
-    public function pause(GameSession $session): JsonResponse
+    public function pause(int $id): JsonResponse
     {
+        $session = GameSession::findOrFail($id);
         $session->update(['status' => 'paused']);
+        broadcast(new GameStateUpdated($session, 'paused'))->toOthers();
         return response()->json(['data' => $session, 'message' => 'Sesión pausada']);
     }
 
-    public function resume(GameSession $session): JsonResponse
+    public function resume(int $id): JsonResponse
     {
+        $session = GameSession::findOrFail($id);
         $session->update(['status' => 'playing']);
+        broadcast(new GameStateUpdated($session, 'playing'))->toOthers();
         return response()->json(['data' => $session, 'message' => 'Sesión reanudada']);
     }
 
-    public function finish(GameSession $session): JsonResponse
+    public function finish(int $id): JsonResponse
     {
+        $session = GameSession::findOrFail($id);
         $session->update(['status' => 'finished', 'ended_at' => now()]);
+        broadcast(new GameStateUpdated($session, 'finished'))->toOthers();
         return response()->json(['data' => $session, 'message' => 'Sesión finalizada']);
     }
 }
