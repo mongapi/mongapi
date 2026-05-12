@@ -7,6 +7,35 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Local Docker Setup
+
+This repository can now run independently from the old monorepo.
+
+1. Copy `.env.example` to `.env`.
+2. Adjust `APP_KEY`, `REVERB_APP_KEY`, `REVERB_APP_SECRET`, and database credentials if needed.
+3. Start the stack:
+
+```bash
+docker compose up -d --build
+```
+
+Services exposed by the compose file:
+
+- API through Nginx: `http://localhost:8000`
+- Reverb websocket server: `ws://localhost:8006`
+- PostgreSQL: `localhost:5432`
+- pgAdmin: `http://localhost:5050`
+
+Useful commands:
+
+```bash
+docker compose logs -f
+docker compose logs -f app
+docker compose logs -f reverb
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate
+```
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
