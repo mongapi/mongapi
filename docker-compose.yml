@@ -13,6 +13,7 @@ services:
       - ./.env
     environment:
       DB_HOST: db
+      DB_PORT: 5432
     networks:
       - mongapi-network
     depends_on:
@@ -48,6 +49,7 @@ services:
       - ./.env
     environment:
       DB_HOST: db
+      DB_PORT: 5432
     networks:
       - mongapi-network
     depends_on:
