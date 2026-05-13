@@ -14,7 +14,6 @@ class PlayerAnswered implements ShouldBroadcast
 
     public function __construct(
         public int    $sessionId,
-        public int    $classroomId,
         public string $deviceId,
         public int    $questionId,
         public mixed  $answer,
@@ -24,7 +23,7 @@ class PlayerAnswered implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        return [new Channel('classroom.' . $this->classroomId)];
+        return [new Channel('session.' . $this->sessionId)];
     }
 
     public function broadcastAs(): string

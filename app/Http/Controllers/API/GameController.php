@@ -23,13 +23,15 @@ class GameController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name'         => 'required|string|max:255',
             'game_type_id' => 'required|exists:game_types,id',
             'description'  => 'nullable|string',
+            'game_content' => 'required|array',
+            'is_active'    => 'sometimes|boolean',
         ]);
 
-        $game = Game::create($request->all());
+        $game = Game::create($validated);
         return response()->json(['data' => $game, 'message' => 'Juego creado'], 201);
     }
 
@@ -37,13 +39,15 @@ class GameController extends Controller
     {
         $game = Game::findOrFail($id);
 
-        $request->validate([
+        $validated = $request->validate([
             'name'         => 'sometimes|string|max:255',
             'game_type_id' => 'sometimes|exists:game_types,id',
             'description'  => 'nullable|string',
+            'game_content' => 'sometimes|array',
+            'is_active'    => 'sometimes|boolean',
         ]);
 
-        $game->update($request->all());
+        $game->update($validated);
         return response()->json(['data' => $game, 'message' => 'Juego actualizado']);
     }
 

@@ -17,7 +17,7 @@ class GameSessionStarted implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        return [new Channel('classroom.' . $this->session->classroom_id)];
+        return [new Channel('session.' . $this->session->id)];
     }
 
     public function broadcastAs(): string
@@ -29,8 +29,9 @@ class GameSessionStarted implements ShouldBroadcast
     {
         return [
             'session_id'   => $this->session->id,
+            'lesson_plan_id' => $this->session->lesson_plan_id,
             'game_id'      => $this->session->game_id,
-            'classroom_id' => $this->session->classroom_id,
+            'current_phase_index' => $this->session->current_phase_index,
             'started_at'   => $this->session->started_at,
             'status'       => $this->session->status,
         ];

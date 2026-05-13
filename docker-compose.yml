@@ -11,6 +11,8 @@ services:
       - ./:/var/www
     env_file:
       - ./.env
+    environment:
+      DB_HOST: db
     networks:
       - mongapi-network
     depends_on:
@@ -31,6 +33,9 @@ services:
       - mongapi-network
 
   reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: mongapi-backend
     container_name: mongapi-reverb
     command: php artisan reverb:start --host=0.0.0.0 --port=8080
@@ -41,6 +46,8 @@ services:
       - ./:/var/www
     env_file:
       - ./.env
+    environment:
+      DB_HOST: db
     networks:
       - mongapi-network
     depends_on:
@@ -58,7 +65,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
     networks:

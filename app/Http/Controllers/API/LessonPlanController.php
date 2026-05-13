@@ -22,23 +22,29 @@ class LessonPlanController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name'  => 'required|string|max:255',
-            'games' => 'nullable|array',
+            'description' => 'nullable|string',
+            'game_ids' => 'required|array|min:1',
+            'game_ids.*' => 'integer|exists:games,id',
+            'is_active' => 'sometimes|boolean',
         ]);
 
-        $plan = LessonPlan::create($request->only(['name', 'games']));
+        $plan = LessonPlan::create($validated);
         return response()->json(['data' => $plan, 'message' => 'Plan creado'], 201);
     }
 
     public function update(Request $request, LessonPlan $lessonPlan): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name'  => 'sometimes|string|max:255',
-            'games' => 'nullable|array',
+            'description' => 'nullable|string',
+            'game_ids' => 'sometimes|array|min:1',
+            'game_ids.*' => 'integer|exists:games,id',
+            'is_active' => 'sometimes|boolean',
         ]);
 
-        $lessonPlan->update($request->only(['name', 'games']));
+        $lessonPlan->update($validated);
         return response()->json(['data' => $lessonPlan, 'message' => 'Plan actualizado']);
     }
 

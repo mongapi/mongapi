@@ -13,7 +13,10 @@ class GameSession extends Model
         'lesson_plan_id',
         // 'user_id',  ← NO - Observer lo asigna
         'game_id',
+        'current_phase_index',
         'game_content',
+        'pin',
+        'pin_expires_at',
         'game_mode',
         'status',
         'started_at',
@@ -21,7 +24,9 @@ class GameSession extends Model
     ];
 
     protected $casts = [
+        'current_phase_index' => 'integer',
         'game_content' => 'array',
+        'pin_expires_at' => 'datetime',
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
     ];

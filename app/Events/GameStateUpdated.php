@@ -20,7 +20,7 @@ class GameStateUpdated implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        return [new Channel('classroom.' . $this->session->classroom_id)];
+        return [new Channel('session.' . $this->session->id)];
     }
 
     public function broadcastAs(): string
@@ -33,6 +33,8 @@ class GameStateUpdated implements ShouldBroadcast
         return [
             'session_id' => $this->session->id,
             'state'      => $this->state,
+            'game_id' => $this->session->game_id,
+            'current_phase_index' => $this->session->current_phase_index,
             'updated_at' => now()->toISOString(),
         ];
     }
