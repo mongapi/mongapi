@@ -9,52 +9,20 @@ class DeviceSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('devices')->insert([
-            [
-                'device_name' => 'Mesa 1',
-                'device_type' => 'mesa',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
-            [
-                'device_name' => 'Mesa 2',
-                'device_type' => 'mesa',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
-            [
-                'device_name' => 'Mesa 3',
-                'device_type' => 'mesa',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
-            [
-                'device_name' => 'Mesa 4',
-                'device_type' => 'mesa',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
+        $timestamp = now();
 
-
-            [
-                'device_name' => 'Proyector 1',
-                'device_type' => 'projector',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
-            [
-                'device_name' => 'Proyector 2',
-                'device_type' => 'projector',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
-
-        ]);
+        foreach ([
+            ['device_name' => 'Mesa 1', 'device_type' => 'mesa', 'is_active' => true],
+            ['device_name' => 'Mesa 2', 'device_type' => 'mesa', 'is_active' => true],
+            ['device_name' => 'Mesa 3', 'device_type' => 'mesa', 'is_active' => true],
+            ['device_name' => 'Mesa 4', 'device_type' => 'mesa', 'is_active' => true],
+            ['device_name' => 'Proyector 1', 'device_type' => 'projector', 'is_active' => true],
+            ['device_name' => 'Proyector 2', 'device_type' => 'projector', 'is_active' => true],
+        ] as $device) {
+            DB::table('devices')->updateOrInsert(
+                ['device_name' => $device['device_name']],
+                [...$device, 'updated_at' => $timestamp, 'created_at' => $timestamp],
+            );
+        }
     }
 }

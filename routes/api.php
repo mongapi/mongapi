@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/game-types',   [GameTypeController::class, 'index']);
     Route::get('/lesson-plans', [LessonPlanController::class, 'index']);
     Route::get('/lesson-plans/{lessonPlan}', [LessonPlanController::class, 'show']);
+    Route::get('/sessions', [SessionController::class, 'index']);
 
     // Juegos
     Route::get('/games',        [GameController::class, 'index']);

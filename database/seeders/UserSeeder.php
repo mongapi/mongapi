@@ -10,23 +10,26 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('users')->insert([  
+        $timestamp = now();
+
+        foreach ([
             [
                 'name' => 'Daniela Mateo',
                 'email' => 'profe@mongame.com',
                 'password' => Hash::make('password123'),
-                'role' => 'teacher', 
-                'created_at' => now(),
-                'updated_at' => now(),
+                'role' => 'teacher',
             ],
             [
                 'name' => 'Admin Usuario',
                 'email' => 'admin@mongame.com',
                 'password' => Hash::make('password123'),
-                'role' => 'admin',  
-                'created_at' => now(),
-                'updated_at' => now(),
+                'role' => 'admin',
             ],
-        ]);
+        ] as $user) {
+            DB::table('users')->updateOrInsert(
+                ['email' => $user['email']],
+                [...$user, 'updated_at' => $timestamp, 'created_at' => $timestamp],
+            );
+        }
     }
 }

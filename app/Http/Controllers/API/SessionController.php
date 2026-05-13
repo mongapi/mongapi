@@ -15,6 +15,18 @@ use Illuminate\Validation\ValidationException;
 
 class SessionController extends Controller
 {
+    public function index(Request $request): JsonResponse
+    {
+        $sessions = GameSession::with(['lessonPlan', 'game.gameType'])
+            ->where('user_id', $request->user()->id)
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'data' => $sessions->map(fn (GameSession $session) => $this->serializeSession($session))->values(),
+        ]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -245,17 +257,23 @@ class SessionController extends Controller
             'total_phases' => $totalPhases,
             'started_at' => $session->started_at,
             'ended_at' => $session->ended_at,
+            'created_at' => $session->created_at,
+            'updated_at' => $session->updated_at,
             'lesson_plan' => $session->lessonPlan ? [
                 'id' => $session->lessonPlan->id,
                 'name' => $session->lessonPlan->name,
                 'description' => $session->lessonPlan->description,
                 'game_ids' => $lessonGameIds,
+                'created_at' => $session->lessonPlan->created_at,
+                'updated_at' => $session->lessonPlan->updated_at,
             ] : null,
             'game' => $session->game ? [
                 'id' => $session->game->id,
                 'name' => $session->game->name,
                 'description' => $session->game->description,
                 'game_type_id' => $session->game->game_type_id,
+                'created_at' => $session->game->created_at,
+                'updated_at' => $session->game->updated_at,
                 'game_type' => $session->game->gameType ? [
                     'id' => $session->game->gameType->id,
                     'code' => $session->game->gameType->code,

@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             GameTypeSeeder::class,
             DeviceSeeder::class,
             UserSeeder::class,
+            GameSeeder::class,
         ]);
     }
 }
