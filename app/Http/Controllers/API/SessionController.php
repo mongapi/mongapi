@@ -106,12 +106,11 @@ class SessionController extends Controller
             'player_number' => 'nullable|integer|min:1',
         ]);
 
-        $questions = collect($session->game_content['questions'] ?? []);
-        $question = $questions->firstWhere('id', $validated['question_id']);
+        $question = $this->resolveAnswerableItem($session->game_content ?? [], $validated['question_id']);
 
         if (!$question) {
             throw ValidationException::withMessages([
-                'question_id' => ['La pregunta no existe dentro del contenido de la sesión.'],
+                'question_id' => ['La pregunta o hito no existe dentro del contenido de la sesión.'],
             ]);
         }
 
@@ -140,6 +139,16 @@ class SessionController extends Controller
                 'player_name' => $validated['player_name'] ?? null,
             ],
         ]);
+    }
+
+    private function resolveAnswerableItem(array $gameContent, mixed $questionId): ?array
+    {
+        $question = collect($gameContent['questions'] ?? [])->firstWhere('id', $questionId);
+        if ($question) {
+            return $question;
+        }
+
+        return collect($gameContent['items'] ?? [])->firstWhere('id', $questionId);
     }
 
     public function nextPhase(int $id): JsonResponse
