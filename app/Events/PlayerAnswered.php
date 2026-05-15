@@ -18,7 +18,9 @@ class PlayerAnswered implements ShouldBroadcast
         public int    $questionId,
         public mixed  $answer,
         public bool   $isCorrect,
-        public int    $score
+        public int    $score,
+        public ?string $playerName = null,
+        public ?int   $elapsedSeconds = null,
     ) {}
 
     public function broadcastOn(): array
@@ -40,6 +42,8 @@ class PlayerAnswered implements ShouldBroadcast
             'answer'      => $this->answer,
             'is_correct'  => $this->isCorrect,
             'score'       => $this->score,
+            'player_name' => $this->playerName,
+            'elapsed_seconds' => $this->elapsedSeconds,
             'answered_at' => now()->toISOString(),
         ];
     }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\AdminDashboardController;
 use App\Http\Controllers\API\GameController;
 use App\Http\Controllers\API\GameTypeController;
 use App\Http\Controllers\API\LessonPlanController;
@@ -15,6 +16,8 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 Route::get('/sessions/join/{pin}', [SessionController::class, 'joinByPin']);
 Route::get('/sessions/{id}', [SessionController::class, 'show'])->whereNumber('id');
 Route::post('/sessions/{id}/answers', [SessionController::class, 'submitAnswer'])->whereNumber('id');
+Route::post('/sessions/{id}/presence', [SessionController::class, 'touchPresence'])->whereNumber('id');
+Route::post('/sessions/{id}/presence/leave', [SessionController::class, 'leavePresence'])->whereNumber('id');
 
 // ─── Protegidas (Sanctum) ──────────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -26,6 +29,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lesson-plans', [LessonPlanController::class, 'index']);
     Route::get('/lesson-plans/{lessonPlan}', [LessonPlanController::class, 'show']);
     Route::get('/sessions', [SessionController::class, 'index']);
+    Route::get('/sessions/{id}/results', [SessionController::class, 'results'])->whereNumber('id');
+    Route::get('/sessions/{id}/results/export', [SessionController::class, 'exportResults'])->whereNumber('id');
+    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->middleware('role:admin');
 
     // Juegos
     Route::get('/games',        [GameController::class, 'index']);

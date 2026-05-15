@@ -11,6 +11,7 @@ class GameResult extends Model
 
     protected $fillable = [
         'game_session_id',
+        'participant_key',
         'device_id',
         'player_number',
         'player_name',
