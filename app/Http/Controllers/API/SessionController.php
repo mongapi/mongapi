@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Validation\ValidationException;
 
 class SessionController extends Controller
@@ -64,10 +65,17 @@ class SessionController extends Controller
         return response()->json(['data' => $this->serializeSession($session)], 201);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
         $session = GameSession::with(['lessonPlan', 'game.gameType'])->findOrFail($id);
-        return response()->json(['data' => $this->serializeSession($session)]);
+        $this->authorizeSessionView($request, $session);
+
+        return response()->json([
+            'data' => $this->serializeSession(
+                $session,
+                $this->canManageSession($request, $session),
+            ),
+        ]);
     }
 
     public function results(Request $request, int $id): JsonResponse
@@ -209,6 +217,7 @@ class SessionController extends Controller
         }
 
         $validated = $request->validate([
+            'pin' => 'required|string',
             'question_id' => 'required',
             'answer' => 'required',
             'device_id' => 'nullable|string|max:100',
@@ -217,6 +226,12 @@ class SessionController extends Controller
             'elapsed_seconds' => 'nullable|integer|min:0|max:86400',
             'completed' => 'nullable|boolean',
         ]);
+
+        if ($session->pin !== $validated['pin']) {
+            throw ValidationException::withMessages([
+                'pin' => ['El PIN no corresponde a esta sesión.'],
+            ]);
+        }
 
         $evaluation = $this->evaluateAnswer(
             session: $session,
@@ -344,9 +359,10 @@ class SessionController extends Controller
         return null;
     }
 
-    public function nextPhase(int $id): JsonResponse
+    public function nextPhase(Request $request, int $id): JsonResponse
     {
         $session = GameSession::with('lessonPlan')->findOrFail($id);
+        $this->authorizeSessionManagement($request, $session);
         $lessonPlan = $session->lessonPlan;
 
         if (!$lessonPlan) {
@@ -383,33 +399,37 @@ class SessionController extends Controller
         ]);
     }
 
-    public function start(int $id): JsonResponse
+    public function start(Request $request, int $id): JsonResponse
     {
         $session = GameSession::with(['lessonPlan', 'game.gameType'])->findOrFail($id);
+        $this->authorizeSessionManagement($request, $session);
         $session->update(['status' => 'playing', 'started_at' => now()]);
         broadcast(new GameSessionStarted($session))->toOthers();
         return response()->json(['data' => $this->serializeSession($session), 'message' => 'Sesión iniciada']);
     }
 
-    public function pause(int $id): JsonResponse
+    public function pause(Request $request, int $id): JsonResponse
     {
         $session = GameSession::with(['lessonPlan', 'game.gameType'])->findOrFail($id);
+        $this->authorizeSessionManagement($request, $session);
         $session->update(['status' => 'paused']);
         broadcast(new GameStateUpdated($session, 'paused'))->toOthers();
         return response()->json(['data' => $this->serializeSession($session), 'message' => 'Sesión pausada']);
     }
 
-    public function resume(int $id): JsonResponse
+    public function resume(Request $request, int $id): JsonResponse
     {
         $session = GameSession::with(['lessonPlan', 'game.gameType'])->findOrFail($id);
+        $this->authorizeSessionManagement($request, $session);
         $session->update(['status' => 'playing']);
         broadcast(new GameStateUpdated($session, 'playing'))->toOthers();
         return response()->json(['data' => $this->serializeSession($session), 'message' => 'Sesión reanudada']);
     }
 
-    public function finish(int $id): JsonResponse
+    public function finish(Request $request, int $id): JsonResponse
     {
         $session = GameSession::with(['lessonPlan', 'game.gameType'])->findOrFail($id);
+        $this->authorizeSessionManagement($request, $session);
         $session->update(['status' => 'finished', 'ended_at' => now()]);
         broadcast(new GameStateUpdated($session, 'finished'))->toOthers();
         return response()->json(['data' => $this->serializeSession($session), 'message' => 'Sesión finalizada']);
@@ -440,20 +460,19 @@ class SessionController extends Controller
         return [null, $activeGame, 0];
     }
 
-    private function serializeSession(GameSession $session): array
+    private function serializeSession(GameSession $session, bool $includeSensitive = true): array
     {
         $session->loadMissing(['lessonPlan', 'game.gameType']);
 
         $lessonGameIds = array_values($session->lessonPlan?->game_ids ?? []);
         $totalPhases = count($lessonGameIds) ?: ($session->game_id ? 1 : 0);
-        $activeParticipants = array_values($this->cleanAndReadParticipants($session->id));
-        $resultsSummary = $this->buildResultsSummary($session);
+        $activeParticipants = $includeSensitive ? array_values($this->cleanAndReadParticipants($session->id)) : [];
+        $resultsSummary = $includeSensitive ? $this->buildResultsSummary($session) : [];
 
-        return [
+        $payload = [
             'id' => $session->id,
             'lesson_plan_id' => $session->lesson_plan_id,
             'game_id' => $session->game_id,
-            'pin' => $session->pin,
             'status' => $session->status,
             'game_mode' => $session->game_mode,
             'game_content' => $session->game_content,
@@ -488,6 +507,12 @@ class SessionController extends Controller
                 ] : null,
             ] : null,
         ];
+
+        if ($includeSensitive) {
+            $payload['pin'] = $session->pin;
+        }
+
+        return $payload;
     }
 
     private function presenceCacheKey(int $sessionId): string
@@ -633,6 +658,35 @@ class SessionController extends Controller
         if (!$user->isAdmin() && (int) $session->user_id !== (int) $user->id) {
             abort(403, 'No puedes consultar los resultados de esta sesión.');
         }
+    }
+
+    private function canManageSession(Request $request, GameSession $session): bool
+    {
+        $user = $request->user();
+
+        return $user && ($user->isAdmin() || (int) $session->user_id === (int) $user->id);
+    }
+
+    private function authorizeSessionManagement(Request $request, GameSession $session): void
+    {
+        if (!$this->canManageSession($request, $session)) {
+            abort(Response::HTTP_FORBIDDEN, 'No puedes gestionar una sesión creada por otro profesor.');
+        }
+    }
+
+    private function authorizeSessionView(Request $request, GameSession $session): void
+    {
+        if ($this->canManageSession($request, $session)) {
+            return;
+        }
+
+        $pin = (string) $request->query('pin', '');
+
+        if ($pin !== '' && hash_equals((string) $session->pin, $pin)) {
+            return;
+        }
+
+        abort(Response::HTTP_FORBIDDEN, 'No puedes consultar esta sesión sin un PIN válido.');
     }
 
     private function buildResultsCsv(array $payload): string

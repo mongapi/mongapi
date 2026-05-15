@@ -6,18 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\LessonPlan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class LessonPlanController extends Controller
 {
     public function index(): JsonResponse
     {
-        $plans = LessonPlan::all();
+        $plans = LessonPlan::with(['user:id,name,email'])->get();
         return response()->json(['data' => $plans]);
     }
 
     public function show(LessonPlan $lessonPlan): JsonResponse
     {
-        return response()->json(['data' => $lessonPlan]);
+        return response()->json(['data' => $lessonPlan->load(['user:id,name,email'])]);
     }
 
     public function store(Request $request): JsonResponse
@@ -30,12 +31,14 @@ class LessonPlanController extends Controller
             'is_active' => 'sometimes|boolean',
         ]);
 
-        $plan = LessonPlan::create($validated);
+        $plan = LessonPlan::create($validated)->load(['user:id,name,email']);
         return response()->json(['data' => $plan, 'message' => 'Plan creado'], 201);
     }
 
     public function update(Request $request, LessonPlan $lessonPlan): JsonResponse
     {
+        $this->authorizeOwner($request, $lessonPlan);
+
         $validated = $request->validate([
             'name'  => 'sometimes|string|max:255',
             'description' => 'nullable|string',
@@ -45,12 +48,23 @@ class LessonPlanController extends Controller
         ]);
 
         $lessonPlan->update($validated);
+        $lessonPlan->load(['user:id,name,email']);
         return response()->json(['data' => $lessonPlan, 'message' => 'Plan actualizado']);
     }
 
-    public function destroy(LessonPlan $lessonPlan): JsonResponse
+    public function destroy(Request $request, LessonPlan $lessonPlan): JsonResponse
     {
+        $this->authorizeOwner($request, $lessonPlan);
         $lessonPlan->delete();
         return response()->json(['message' => 'Plan eliminado']);
+    }
+
+    private function authorizeOwner(Request $request, LessonPlan $lessonPlan): void
+    {
+        $user = $request->user();
+
+        if (!$user || (!$user->isAdmin() && $lessonPlan->user_id !== $user->id)) {
+            abort(Response::HTTP_FORBIDDEN, 'No puedes modificar un lesson plan creado por otro profesor.');
+        }
     }
 }
